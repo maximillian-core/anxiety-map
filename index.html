@@ -1,0 +1,1168 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Карта тревожных точек</title>
+  <style>
+    :root {
+      --bg: #0c101b;
+      --ink: #f2e8bd;
+      --muted: #a89b73;
+      --black: #08090d;
+      --frame: #2a2231;
+      --stone-1: #38424c;
+      --stone-2: #26303a;
+      --stone-3: #596370;
+      --grass-1: #273d27;
+      --grass-2: #38562f;
+      --roof-1: #6f2f2e;
+      --roof-2: #3b1c23;
+      --wood-1: #735536;
+      --wood-2: #33251c;
+      --water-1: #0f4164;
+      --water-2: #126b92;
+      --water-3: #7fc7cf;
+      --gold: #d99a2b;
+      --gold-light: #f7d36c;
+      --red: #9a2434;
+      --violet: #513c68;
+      --green: #6aa84f;
+      --ui: #11131d;
+      font-family: "Courier New", Courier, monospace;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 50% -20%, #29324b 0 25%, transparent 46%),
+        linear-gradient(180deg, #0b0d15 0%, #171321 100%);
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+    }
+
+    .app {
+      width: min(1180px, 100vw);
+      height: min(720px, 100vh);
+      padding: 14px;
+      display: grid;
+      grid-template-rows: 1fr auto;
+      gap: 12px;
+    }
+
+    .stage {
+      position: relative;
+      overflow: hidden;
+      border: 5px solid #07070b;
+      box-shadow:
+        0 0 0 4px #38304a,
+        0 18px 0 rgba(0, 0, 0, .45);
+      image-rendering: pixelated;
+      isolation: isolate;
+      background:
+        linear-gradient(90deg, transparent 0 78%, #061c2c 78% 79%, var(--water-1) 79% 89%, #061c2c 89% 90%, transparent 90%),
+        repeating-linear-gradient(90deg, transparent 0 30px, rgba(255,255,255,.04) 30px 32px),
+        repeating-linear-gradient(0deg, transparent 0 30px, rgba(0,0,0,.18) 30px 32px),
+        linear-gradient(135deg, var(--grass-1), #1b2b25 62%, #243324);
+    }
+
+    .stage::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      pointer-events: none;
+      background:
+        repeating-linear-gradient(115deg, transparent 0 16px, rgba(154, 179, 143, .12) 16px 18px, transparent 18px 32px),
+        radial-gradient(circle at 11% 18%, #4f743b 0 14px, transparent 15px),
+        radial-gradient(circle at 14% 15%, #2e4d2d 0 16px, transparent 17px),
+        radial-gradient(circle at 18% 19%, #5b8d45 0 12px, transparent 13px),
+        radial-gradient(circle at 66% 18%, #4d7042 0 18px, transparent 19px),
+        radial-gradient(circle at 72% 22%, #2c482d 0 15px, transparent 16px),
+        radial-gradient(circle at 34% 83%, #6d874d 0 13px, transparent 14px),
+        radial-gradient(circle at 36% 86%, #304d2e 0 17px, transparent 18px),
+        radial-gradient(circle at 91% 72%, #31482d 0 16px, transparent 17px);
+      opacity: .82;
+    }
+
+    .stage::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      z-index: 16;
+      pointer-events: none;
+      box-shadow: inset 0 0 90px rgba(0,0,0,.45);
+      background:
+        repeating-linear-gradient(0deg, rgba(255,255,255,.03) 0 1px, transparent 1px 4px);
+      mix-blend-mode: soft-light;
+    }
+
+    .river {
+      position: absolute;
+      top: -5%;
+      right: 10.8%;
+      width: 11%;
+      height: 112%;
+      z-index: 2;
+      background:
+        repeating-linear-gradient(135deg, rgba(127,199,207,.6) 0 8px, transparent 8px 18px),
+        repeating-linear-gradient(0deg, var(--water-2) 0 18px, var(--water-1) 18px 32px);
+      border-left: 5px solid #08233a;
+      border-right: 5px solid #08233a;
+      box-shadow: inset 9px 0 0 rgba(255,255,255,.12), inset -8px 0 0 rgba(0,0,0,.28);
+    }
+
+    .river-bank {
+      position: absolute;
+      top: 0;
+      right: 8.5%;
+      width: 16%;
+      height: 100%;
+      z-index: 1;
+      background:
+        repeating-linear-gradient(0deg, transparent 0 18px, rgba(0,0,0,.28) 18px 22px),
+        linear-gradient(90deg, transparent 0 8%, #37414a 8% 20%, transparent 20% 80%, #37414a 80% 92%, transparent 92%);
+    }
+
+    .trail {
+      position: absolute;
+      inset: 0;
+      z-index: 3;
+      background:
+        radial-gradient(ellipse at 10% 75%, #53606b 0 5.2%, transparent 5.5%),
+        radial-gradient(ellipse at 22% 64%, #53606b 0 6.1%, transparent 6.4%),
+        radial-gradient(ellipse at 34% 51%, #53606b 0 5.8%, transparent 6.1%),
+        radial-gradient(ellipse at 45% 39%, #53606b 0 5.2%, transparent 5.5%),
+        radial-gradient(ellipse at 56% 48%, #53606b 0 5.8%, transparent 6.1%),
+        radial-gradient(ellipse at 67% 62%, #53606b 0 5.2%, transparent 5.5%),
+        radial-gradient(ellipse at 77% 45%, #53606b 0 5.5%, transparent 5.8%),
+        radial-gradient(ellipse at 89% 29%, #53606b 0 7%, transparent 7.3%);
+      filter: drop-shadow(0 5px 0 #242b33);
+    }
+
+    .trail::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(circle at 16% 69%, var(--stone-3) 0 4px, transparent 5px),
+        radial-gradient(circle at 27% 58%, #303842 0 5px, transparent 6px),
+        radial-gradient(circle at 38% 48%, var(--stone-3) 0 4px, transparent 5px),
+        radial-gradient(circle at 51% 44%, #313944 0 5px, transparent 6px),
+        radial-gradient(circle at 62% 56%, var(--stone-3) 0 4px, transparent 5px),
+        radial-gradient(circle at 72% 53%, #303842 0 5px, transparent 6px),
+        radial-gradient(circle at 84% 34%, var(--stone-3) 0 4px, transparent 5px);
+    }
+
+    .bridge {
+      position: absolute;
+      right: 8.2%;
+      top: 48%;
+      width: 140px;
+      height: 68px;
+      z-index: 5;
+      transform: translateY(-50%);
+      background:
+        repeating-linear-gradient(90deg, #704123 0 12px, #9b6331 12px 22px),
+        linear-gradient(#9b6331, #704123);
+      border: 5px solid #2b1a13;
+      box-shadow: inset 0 -8px 0 rgba(0,0,0,.25), 0 7px 0 rgba(0,0,0,.3);
+    }
+
+    .bridge::before,
+    .bridge::after {
+      content: "";
+      position: absolute;
+      left: -13px;
+      right: -13px;
+      height: 10px;
+      background: #b16931;
+      border: 4px solid #2b1a13;
+    }
+
+    .bridge::before { top: 8px; }
+    .bridge::after { bottom: 8px; }
+
+    .buildings {
+      position: absolute;
+      inset: 0;
+      z-index: 4;
+      pointer-events: none;
+    }
+
+    .house {
+      --x: 20%;
+      --y: 22%;
+      --w: 120px;
+      --h: 92px;
+      position: absolute;
+      left: var(--x);
+      top: var(--y);
+      width: var(--w);
+      height: var(--h);
+      transform: translate(-50%, -50%);
+      filter: drop-shadow(7px 9px 0 rgba(0,0,0,.35));
+    }
+
+    .house::before {
+      content: "";
+      position: absolute;
+      left: 8%;
+      right: 8%;
+      bottom: 0;
+      height: 58%;
+      background:
+        linear-gradient(90deg, transparent 0 16%, #5f3929 16% 20%, transparent 20% 50%, #5f3929 50% 54%, transparent 54% 80%, #5f3929 80% 84%, transparent 84%),
+        repeating-linear-gradient(0deg, #8f7654 0 10px, #6b563e 10px 13px);
+      border: 4px solid #2a1b18;
+      box-shadow: inset 0 -7px 0 rgba(0,0,0,.28);
+    }
+
+    .house::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 50%;
+      background:
+        repeating-linear-gradient(0deg, rgba(255,255,255,.09) 0 3px, transparent 3px 9px),
+        repeating-linear-gradient(90deg, var(--roof-1) 0 14px, var(--roof-2) 14px 20px);
+      clip-path: polygon(50% 0, 100% 58%, 92% 100%, 8% 100%, 0 58%);
+      border: 4px solid #23151a;
+    }
+
+    .house.small { --w: 92px; --h: 74px; }
+    .house.blue::after {
+      background:
+        repeating-linear-gradient(0deg, rgba(255,255,255,.16) 0 3px, transparent 3px 9px),
+        repeating-linear-gradient(90deg, #3e6d86 0 14px, #1b334c 14px 20px);
+    }
+
+    .cave {
+      --x: 20%;
+      --y: 50%;
+      --scale: 1;
+      position: absolute;
+      left: var(--x);
+      top: var(--y);
+      width: calc(86px * var(--scale));
+      height: calc(72px * var(--scale));
+      transform: translate(-50%, -50%);
+      z-index: 6;
+      filter: drop-shadow(6px 8px 0 rgba(0,0,0,.42));
+    }
+
+    .cave::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(circle at 24% 30%, #6c7482 0 8%, transparent 9%),
+        radial-gradient(circle at 66% 24%, #242a35 0 10%, transparent 11%),
+        radial-gradient(circle at 79% 63%, #727b84 0 7%, transparent 8%),
+        linear-gradient(180deg, #616a75 0 32%, #303743 33% 100%);
+      clip-path: polygon(50% 0, 97% 36%, 88% 100%, 12% 100%, 3% 36%);
+      border: 4px solid #11131a;
+      box-shadow: inset 0 -12px 0 #1b2029;
+    }
+
+    .cave::after {
+      content: "";
+      position: absolute;
+      left: 50%;
+      bottom: 0;
+      width: 40%;
+      height: 58%;
+      transform: translateX(-50%);
+      background: #05060a;
+      border: calc(4px * var(--scale)) solid #7b6b7f;
+      border-bottom: 0;
+      border-radius: 50% 50% 0 0;
+      box-shadow: inset 0 8px 0 #17101d;
+    }
+
+    .cave-label {
+      position: absolute;
+      left: 50%;
+      top: calc(100% + 6px);
+      transform: translateX(-50%);
+      width: max-content;
+      max-width: 138px;
+      padding: 4px 7px;
+      color: #f2e8bd;
+      background: #11131d;
+      border: 3px solid #3d3447;
+      font-size: 11px;
+      line-height: 1.05;
+      text-align: center;
+      box-shadow: 3px 3px 0 rgba(0,0,0,.55);
+      text-shadow: 2px 2px 0 #000;
+    }
+
+    .monster {
+      --x: 25%;
+      --y: 48%;
+      --scale: 1;
+      position: absolute;
+      left: var(--x);
+      top: var(--y);
+      width: calc(38px * var(--scale));
+      height: calc(42px * var(--scale));
+      transform: translate(-50%, -50%);
+      z-index: 8;
+      transition: opacity .35s steps(3), transform .35s steps(4);
+      filter: drop-shadow(calc(3px * var(--scale)) calc(5px * var(--scale)) 0 rgba(0,0,0,.48));
+    }
+
+    .monster.defeated {
+      opacity: 0;
+      transform: translate(-50%, -50%) scale(.55) rotate(12deg);
+    }
+
+    .monster-body {
+      position: absolute;
+      inset: 20% 9% 0;
+      background:
+        linear-gradient(90deg, transparent 0 14%, #421225 14% 22%, transparent 22% 78%, #421225 78% 86%, transparent 86%),
+        linear-gradient(180deg, #c73343 0 45%, #7f1d32 46% 100%);
+      border: calc(3px * var(--scale)) solid #250914;
+      border-radius: 4px 4px 8px 8px;
+      box-shadow: inset calc(-6px * var(--scale)) 0 0 rgba(0,0,0,.24);
+    }
+
+    .monster-body::before,
+    .monster-body::after {
+      content: "";
+      position: absolute;
+      top: -30%;
+      width: 31%;
+      height: 44%;
+      background: #d7c26b;
+      border: calc(2px * var(--scale)) solid #250914;
+      clip-path: polygon(50% 0, 100% 100%, 0 100%);
+    }
+
+    .monster-body::before {
+      left: -2%;
+      transform: rotate(-24deg);
+    }
+
+    .monster-body::after {
+      right: -2%;
+      transform: rotate(24deg);
+    }
+
+    .eyes {
+      position: absolute;
+      left: 22%;
+      top: 38%;
+      width: 56%;
+      height: 18%;
+      background:
+        radial-gradient(circle at 20% 50%, #f7d36c 0 22%, #08090d 23% 42%, transparent 43%),
+        radial-gradient(circle at 80% 50%, #f7d36c 0 22%, #08090d 23% 42%, transparent 43%);
+    }
+
+    .hero {
+      --x: 10%;
+      --y: 73%;
+      position: absolute;
+      left: var(--x);
+      top: var(--y);
+      width: 34px;
+      height: 48px;
+      transform: translate(-50%, -82%);
+      z-index: 10;
+      transition: left .78s steps(10), top .78s steps(10);
+      filter: drop-shadow(3px 5px 0 rgba(0,0,0,.45));
+    }
+
+    .hero.walking { animation: bob .42s steps(2) infinite; }
+
+    @keyframes bob { 50% { translate: 0 -4px; } }
+
+    .bag {
+      position: absolute;
+      right: -9px;
+      top: 21px;
+      width: 18px;
+      height: 22px;
+      background: #765330;
+      border: 3px solid #211512;
+      z-index: 1;
+    }
+
+    .head {
+      position: absolute;
+      left: 8px;
+      top: 0;
+      width: 18px;
+      height: 18px;
+      background: #c98d67;
+      border: 3px solid #19121b;
+      box-shadow: 0 -5px 0 #7f2b25, inset -4px 0 0 rgba(0,0,0,.2);
+      z-index: 3;
+    }
+
+    .body {
+      position: absolute;
+      left: 6px;
+      top: 18px;
+      width: 22px;
+      height: 22px;
+      background: #2f7e62;
+      border: 3px solid #102b2b;
+      box-shadow: inset -5px 0 0 rgba(0,0,0,.22);
+      z-index: 2;
+    }
+
+    .legs {
+      position: absolute;
+      left: 8px;
+      bottom: 0;
+      width: 20px;
+      height: 12px;
+      background:
+        linear-gradient(90deg, #1b2036 0 42%, transparent 42% 58%, #1b2036 58% 100%);
+      z-index: 2;
+    }
+
+    .speech {
+      position: absolute;
+      left: 5%;
+      top: 8%;
+      width: min(334px, 36vw);
+      min-height: 122px;
+      padding: 12px;
+      color: #f8efc7;
+      background: #11131d;
+      border: 4px solid #05060a;
+      box-shadow:
+        0 0 0 3px #5a4b5f,
+        6px 6px 0 rgba(0,0,0,.45);
+      z-index: 13;
+      transition: opacity .18s steps(2), transform .18s steps(2), left .4s steps(5), top .4s steps(5);
+    }
+
+    .speech.hidden {
+      opacity: 0;
+      transform: translateY(9px);
+      pointer-events: none;
+    }
+
+    .speech::after {
+      content: "";
+      position: absolute;
+      left: var(--tail-x, 34px);
+      bottom: -16px;
+      width: 20px;
+      height: 16px;
+      background: #11131d;
+      border-right: 4px solid #05060a;
+      border-bottom: 4px solid #05060a;
+      transform: skewX(-24deg);
+    }
+
+    .speech-title {
+      margin: 0 0 8px;
+      font-size: 12px;
+      line-height: 1.18;
+      text-shadow: 2px 2px 0 #000;
+    }
+
+    .inventory {
+      display: grid;
+      gap: 6px;
+    }
+
+    .item-slot {
+      display: grid;
+      grid-template-columns: 28px minmax(0, 1fr);
+      align-items: center;
+      gap: 8px;
+      min-height: 32px;
+      padding: 5px 8px 5px 5px;
+      background: #201c25;
+      border: 3px solid #62536a;
+    }
+
+    .item-icon {
+      position: relative;
+      width: 20px;
+      height: 28px;
+      justify-self: center;
+    }
+
+    .item-icon.vial {
+      background: linear-gradient(180deg, #d8d0b0 0 28%, #6aa84f 29% 100%);
+      border: 3px solid #07070b;
+    }
+
+    .item-icon.vial::before {
+      content: "";
+      position: absolute;
+      left: 4px;
+      top: -8px;
+      width: 8px;
+      height: 6px;
+      background: #9b7b49;
+      border: 3px solid #07070b;
+      border-bottom: 0;
+    }
+
+    .item-icon.dagger {
+      width: 25px;
+      height: 28px;
+    }
+
+    .item-icon.dagger::before {
+      content: "";
+      position: absolute;
+      left: 10px;
+      top: 0;
+      width: 7px;
+      height: 21px;
+      background: linear-gradient(90deg, #cfd5cf, #f8efc7 55%, #7b8286);
+      border: 2px solid #07070b;
+      clip-path: polygon(50% 0, 100% 24%, 78% 100%, 22% 100%, 0 24%);
+    }
+
+    .item-icon.dagger::after {
+      content: "";
+      position: absolute;
+      left: 4px;
+      bottom: 1px;
+      width: 21px;
+      height: 7px;
+      background: #9b6331;
+      border: 2px solid #07070b;
+    }
+
+    .item-icon.shield {
+      width: 24px;
+      height: 28px;
+      background:
+        linear-gradient(90deg, rgba(255,255,255,.22) 0 45%, transparent 45%),
+        linear-gradient(180deg, #426d8d, #25384d);
+      border: 3px solid #07070b;
+      clip-path: polygon(50% 0, 96% 17%, 86% 72%, 50% 100%, 14% 72%, 4% 17%);
+    }
+
+    .slot-text {
+      color: #f8efc7;
+      font-size: 11px;
+      line-height: 1.12;
+      text-shadow: 2px 2px 0 #000;
+    }
+
+    .demon-card {
+      position: absolute;
+      top: 28px;
+      width: 250px;
+      min-height: 354px;
+      padding: 8px;
+      background: #05060a;
+      border: 4px solid #05060a;
+      box-shadow:
+        0 0 0 4px #c18625,
+        0 0 0 7px #171019,
+        9px 9px 0 rgba(0,0,0,.45);
+      z-index: 14;
+      opacity: 1;
+      transform: translateX(0);
+      transition: opacity .22s steps(3), transform .22s steps(3);
+    }
+
+    .demon-card.hidden {
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(10px);
+    }
+
+    .demon-card.left { left: 28px; }
+    .demon-card.right { right: 28px; }
+
+    .card-title {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      min-height: 30px;
+      padding: 5px 7px;
+      color: #19100c;
+      background: var(--gold-light);
+      border: 3px solid #8b521d;
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .card-title span:last-child {
+      color: #f8efc7;
+      background: #1a1420;
+      border: 2px solid #05060a;
+      padding: 2px 5px;
+    }
+
+    .card-art {
+      position: relative;
+      height: 132px;
+      margin: 8px 0;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 50% 60%, #05060a 0 22px, transparent 23px),
+        repeating-linear-gradient(0deg, #34303e 0 14px, #252330 14px 17px),
+        repeating-linear-gradient(90deg, transparent 0 34px, rgba(0,0,0,.32) 34px 38px);
+      border: 3px solid #5b4a5c;
+    }
+
+    .card-art::before {
+      content: "";
+      position: absolute;
+      left: 50%;
+      bottom: 14px;
+      width: 70px;
+      height: 48px;
+      transform: translateX(-50%);
+      background:
+        radial-gradient(circle at 34% 45%, #f7d36c 0 5px, transparent 6px),
+        radial-gradient(circle at 66% 45%, #f7d36c 0 5px, transparent 6px),
+        linear-gradient(180deg, #922134, #47172b);
+      border: 4px solid #08090d;
+      clip-path: polygon(50% 0, 78% 20%, 92% 100%, 8% 100%, 22% 20%);
+    }
+
+    .card-art::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 34px;
+      background:
+        repeating-linear-gradient(90deg, #2d4731 0 20px, #233826 20px 32px);
+      border-top: 3px solid #171019;
+    }
+
+    .card-stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      margin-bottom: 8px;
+    }
+
+    .stat {
+      padding: 6px;
+      background: #181721;
+      border: 3px solid #3e3448;
+      font-size: 12px;
+      line-height: 1.05;
+    }
+
+    .stat strong {
+      display: block;
+      color: var(--gold-light);
+      margin-bottom: 3px;
+      font-size: 10px;
+    }
+
+    .powers {
+      min-height: 72px;
+      padding: 8px;
+      background: #d2bf74;
+      color: #1b1513;
+      border: 3px solid #7d5223;
+      font-size: 11px;
+      line-height: 1.2;
+    }
+
+    .powers strong {
+      display: block;
+      margin-bottom: 4px;
+      color: #7b1e2f;
+    }
+
+    .impact {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 76px;
+      height: 76px;
+      transform: translate(-50%, -50%) scale(0);
+      background: var(--gold-light);
+      clip-path: polygon(50% 0, 61% 31%, 98% 18%, 72% 48%, 100% 72%, 64% 66%, 50% 100%, 38% 68%, 3% 82%, 28% 52%, 0 28%, 36% 34%);
+      z-index: 15;
+      opacity: 0;
+    }
+
+    .impact.play { animation: hit .46s steps(3); }
+
+    @keyframes hit {
+      0% { opacity: 0; transform: translate(-50%, -50%) scale(0); }
+      34% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+      100% { opacity: 0; transform: translate(-50%, -50%) scale(1.4); }
+    }
+
+    .hud {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto auto;
+      align-items: center;
+      gap: 12px;
+      color: #f8efc7;
+      text-shadow: 2px 2px 0 #05060a;
+      background: #090a10;
+      border: 4px solid #05060a;
+      box-shadow: 0 0 0 3px #38304a;
+      padding: 10px;
+    }
+
+    .progress { min-width: 0; }
+
+    .progress strong {
+      display: block;
+      font-size: clamp(14px, 2vw, 19px);
+      margin-bottom: 6px;
+    }
+
+    .bar {
+      height: 14px;
+      border: 3px solid #05060a;
+      background: #191b29;
+      box-shadow: inset 0 3px 0 rgba(255,255,255,.06);
+    }
+
+    .bar span {
+      display: block;
+      height: 100%;
+      width: 0;
+      background:
+        repeating-linear-gradient(90deg, rgba(0,0,0,.18) 0 6px, transparent 6px 12px),
+        linear-gradient(90deg, #5ba14a, #d99a2b);
+      transition: width .28s steps(8);
+    }
+
+    button {
+      appearance: none;
+      border: 4px solid #05060a;
+      padding: 12px 18px;
+      color: #170f11;
+      background: var(--gold-light);
+      font: 700 16px/1 "Courier New", Courier, monospace;
+      box-shadow: 5px 5px 0 rgba(0,0,0,.48);
+      cursor: pointer;
+      text-transform: lowercase;
+    }
+
+    button:active {
+      transform: translate(3px, 3px);
+      box-shadow: 2px 2px 0 rgba(0,0,0,.48);
+    }
+
+    .reset { background: #c7b46e; }
+
+    @media (max-width: 760px) {
+      body { overflow: auto; }
+
+      .app {
+        height: 100vh;
+        padding: 10px;
+      }
+
+      .stage { min-height: 520px; }
+
+      .demon-card {
+        left: 14px !important;
+        right: auto !important;
+        top: 14px;
+        width: min(250px, calc(100% - 28px));
+      }
+
+      .speech {
+        width: calc(100% - 24px);
+        left: 12px !important;
+        top: auto !important;
+        bottom: 16px;
+      }
+
+      .hud { grid-template-columns: 1fr 1fr; }
+      .progress { grid-column: 1 / -1; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="stage" aria-label="Пиксельная карта тревожных точек">
+      <div class="river-bank"></div>
+      <div class="river"></div>
+      <div class="trail"></div>
+      <div class="bridge"></div>
+      <div class="buildings" aria-hidden="true">
+        <div class="house blue" style="--x: 22%; --y: 22%;"></div>
+        <div class="house small" style="--x: 49%; --y: 20%;"></div>
+        <div class="house small blue" style="--x: 12%; --y: 51%;"></div>
+        <div class="house" style="--x: 62%; --y: 77%;"></div>
+      </div>
+      <div id="caves"></div>
+      <div id="monsters"></div>
+      <div class="hero" id="hero" aria-label="Путешественник">
+        <div class="bag"></div>
+        <div class="head"></div>
+        <div class="body"></div>
+        <div class="legs"></div>
+      </div>
+
+      <aside class="demon-card hidden" id="demonCard" aria-live="polite">
+        <div class="card-title">
+          <span id="cardName">страх</span>
+          <span id="cardLevel">I</span>
+        </div>
+        <div class="card-art" aria-hidden="true"></div>
+        <div class="card-stats">
+          <div class="stat"><strong>XP</strong><span id="cardXp">0</span></div>
+          <div class="stat"><strong>УРОН</strong><span id="cardDamage">0</span></div>
+        </div>
+        <div class="powers">
+          <strong>силы</strong>
+          <span id="cardPowers"></span>
+        </div>
+      </aside>
+
+      <aside class="speech hidden" id="speech" aria-live="polite">
+        <p class="speech-title" id="speechTitle">В сумке есть кое-что для этой твари.</p>
+        <div class="inventory">
+          <div class="item-slot">
+            <div class="item-icon vial" aria-hidden="true"></div>
+            <div class="slot-text" id="itemElixir"></div>
+          </div>
+          <div class="item-slot">
+            <div class="item-icon dagger" aria-hidden="true"></div>
+            <div class="slot-text" id="itemDagger"></div>
+          </div>
+          <div class="item-slot">
+            <div class="item-icon shield" aria-hidden="true"></div>
+            <div class="slot-text" id="itemShield"></div>
+          </div>
+        </div>
+      </aside>
+      <div class="impact" id="impact" aria-hidden="true"></div>
+    </section>
+
+    <section class="hud" aria-label="Управление презентацией">
+      <div class="progress">
+        <strong id="chapter">Путь к первой пещере</strong>
+        <div class="bar" aria-hidden="true"><span id="bar"></span></div>
+      </div>
+      <button class="reset" id="reset" type="button">сначала</button>
+      <button id="next" type="button">далее</button>
+    </section>
+  </main>
+
+  <script>
+    const fears = [
+      {
+        name: "Страх неудачи",
+        x: 18, y: 70, mx: 23, my: 66, scale: 0.78,
+        xp: 400, damage: "150", level: "I",
+        powers: "Любое действие обнуляется, как будто бы его и не было. Снижает инициативу. “Умереть под мостом лучше чем оказаться в луже дерьма!”",
+        heroLine: "Я уже это делал",
+        inventory: {
+          elixir: "Эликсир “решительность”",
+          dagger: "Кинжал “получение опыта”",
+          shield: "Щит “ну и что”"
+        }
+      },
+      {
+        name: "Страх боли",
+        x: 30, y: 56, mx: 35, my: 53, scale: 0.9,
+        xp: 550, damage: "180", level: "II",
+        powers: "Заставляет избегать всего, что может задеть — физически, эмоционально, вообще. Усиливается от ожидания удара.",
+        heroLine: "Этот черт меня не пугает!",
+        inventory: {
+          elixir: "Эликсир “Чувственности”",
+          dagger: "Кинжал “Это пройдет”",
+          shield: "Щит “Не смертельно”"
+        }
+      },
+      {
+        name: "Страх брошенности",
+        x: 36, y: 38, mx: 43, my: 39, scale: 1.02,
+        xp: 650, damage: "250", level: "III",
+        powers: "Превращает секунду ожидания в вечность, читает между строк там, где строк нет. Младший брат Отверженности",
+        heroLine: "Я полностью вооружен против него!",
+        inventory: {
+          elixir: "Эликсир “Я есть у себя”",
+          dagger: "Кинжал “Прямой вопрос”",
+          shield: "Щит “Доказательства”"
+        }
+      },
+      {
+        name: "Страх отвержения",
+        x: 55, y: 52, mx: 60, my: 49, scale: 1.14,
+        xp: 650, damage: "300", level: "IV",
+        powers: "Атакует только зеркально, подменяет реальность. Появляется после сообщений",
+        heroLine: "Ты не заставишь меня бояться близости!",
+        inventory: {
+          elixir: "Эликсир “Принятие”",
+          dagger: "Кинжал “Избирательности”",
+          shield: "Щит “Значит это не мое”"
+        }
+      },
+      {
+        name: "Страх одиночества",
+        x: 66, y: 66, mx: 70, my: 63, scale: 1.26,
+        xp: 700, damage: "400", level: "V",
+        powers: "Оглушает противника в рандомный момент, непредсказуем",
+        heroLine: "Это вовсе не страшно",
+        inventory: {
+          elixir: "Эликсир “Самодостаточности”",
+          dagger: "Кинжал “У меня есть близкие”",
+          shield: "Щит “Одному лучше чем не с теми”"
+        }
+      },
+      {
+        name: "Страх потерянности",
+        x: 72, y: 55, mx: 77, my: 50, scale: 1.4,
+        xp: 750, damage: "500", level: "VI",
+        powers: "После нападения не уверен зачем это сделал. Путает голоса, нельзя доверять",
+        heroLine: "Ты силен, но я сильнее",
+        inventory: {
+          elixir: "Эликсир “Уверенности”",
+          dagger: "Кинжал “Stay true”",
+          shield: "Щит “Слушай себя”"
+        }
+      },
+      {
+        name: "Страх неизвестности",
+        x: 87, y: 61, mx: 91, my: 58, scale: 1.58,
+        xp: 480, damage: "210", level: "VII",
+        powers: "Пускает туман перед атакой, а потом не атакует. Плодит варианты исхода",
+        heroLine: "Надо взять себя в руки!",
+        inventory: {
+          elixir: "Эликсир “План”",
+          dagger: "Кинжал “У меня все получится”",
+          shield: "Щит “Следующий шаг”"
+        }
+      },
+      {
+        name: "Страх смерти",
+        x: 94, y: 18, mx: 91, my: 20, scale: 2.05,
+        xp: 9999, damage: "10000", level: "BOSS",
+        powers: "Появляется в 3 ночи без приглашения. Обесценивает любые действия, заставляет ускоряться",
+        heroLine: "У меня в сумочке найдется кое-что для этой твари!",
+        inventory: {
+          elixir: "Эликсир “Жизни”",
+          dagger: "Кинжал “Мне есть что вспомнить”",
+          shield: "Щит “Однажды это произойдет”"
+        }
+      }
+    ];
+
+    const heroStops = [
+      { x: 9, y: 75 },
+      { x: 17, y: 73 },
+      { x: 29, y: 59 },
+      { x: 34, y: 47 },
+      { x: 55, y: 56 },
+      { x: 66, y: 68 },
+      { x: 70, y: 49 },
+      { x: 86, y: 55 },
+      { x: 86, y: 27 }
+    ];
+
+    const caves = document.querySelector("#caves");
+    const monsters = document.querySelector("#monsters");
+    const hero = document.querySelector("#hero");
+    const speech = document.querySelector("#speech");
+    const speechTitle = document.querySelector("#speechTitle");
+    const itemElixir = document.querySelector("#itemElixir");
+    const itemDagger = document.querySelector("#itemDagger");
+    const itemShield = document.querySelector("#itemShield");
+    const demonCard = document.querySelector("#demonCard");
+    const cardName = document.querySelector("#cardName");
+    const cardLevel = document.querySelector("#cardLevel");
+    const cardXp = document.querySelector("#cardXp");
+    const cardDamage = document.querySelector("#cardDamage");
+    const cardPowers = document.querySelector("#cardPowers");
+    const impact = document.querySelector("#impact");
+    const next = document.querySelector("#next");
+    const reset = document.querySelector("#reset");
+    const chapter = document.querySelector("#chapter");
+    const bar = document.querySelector("#bar");
+
+    let step = 0;
+    let phase = "travel";
+    let busy = false;
+
+    fears.forEach((fear, index) => {
+      const cave = document.createElement("article");
+      cave.className = "cave";
+      cave.style.setProperty("--x", `${fear.x}%`);
+      cave.style.setProperty("--y", `${fear.y}%`);
+      cave.style.setProperty("--scale", index === fears.length - 1 ? 1.22 : 1);
+      cave.innerHTML = `<div class="cave-label">${fear.name}</div>`;
+      caves.appendChild(cave);
+
+      const monster = document.createElement("div");
+      monster.className = "monster";
+      monster.dataset.index = index;
+      monster.style.setProperty("--x", `${fear.mx}%`);
+      monster.style.setProperty("--y", `${fear.my}%`);
+      monster.style.setProperty("--scale", fear.scale);
+      monster.innerHTML = '<div class="monster-body"><div class="eyes"></div></div>';
+      monsters.appendChild(monster);
+    });
+
+    function setHero(position) {
+      hero.style.setProperty("--x", `${position.x}%`);
+      hero.style.setProperty("--y", `${position.y}%`);
+    }
+
+    function placeCard(index) {
+      const fear = fears[index];
+      const side = fear.mx > 55 ? "left" : "right";
+      demonCard.classList.toggle("left", side === "left");
+      demonCard.classList.toggle("right", side === "right");
+      cardName.textContent = fear.name;
+      cardLevel.textContent = fear.level;
+      cardXp.textContent = fear.xp;
+      cardDamage.textContent = fear.damage;
+      cardPowers.textContent = fear.powers;
+    }
+
+    function placeSpeech(index) {
+      const fear = fears[index];
+      const leftSide = fear.mx > 50;
+      speech.style.left = leftSide ? "5%" : "66%";
+      speech.style.top = `${Math.min(Math.max(fear.my - 18, 5), 68)}%`;
+      speech.style.setProperty("--tail-x", leftSide ? "220px" : "34px");
+      speechTitle.textContent = fear.heroLine;
+      itemElixir.textContent = fear.inventory.elixir;
+      itemDagger.textContent = fear.inventory.dagger;
+      itemShield.textContent = fear.inventory.shield;
+    }
+
+    function showCard(index) {
+      placeCard(index);
+      demonCard.classList.remove("hidden");
+      speech.classList.add("hidden");
+      phase = "card";
+      updateHud();
+    }
+
+    function hideCard() {
+      demonCard.classList.add("hidden");
+      phase = "after-card";
+      updateHud();
+    }
+
+    function showSpeech() {
+      placeSpeech(step);
+      speech.classList.remove("hidden");
+      phase = "speech";
+      updateHud();
+    }
+
+    function attack() {
+      const fear = fears[step];
+      speech.classList.add("hidden");
+      impact.style.left = `${fear.mx}%`;
+      impact.style.top = `${fear.my}%`;
+      impact.classList.remove("play");
+      void impact.offsetWidth;
+      impact.classList.add("play");
+      const monster = document.querySelector(`.monster[data-index="${step}"]`);
+      monster.classList.add("defeated");
+      phase = "attack";
+      updateHud();
+
+      window.setTimeout(() => {
+        step += 1;
+        phase = step >= fears.length ? "done" : "travel";
+        updateHud();
+      }, 520);
+    }
+
+    function travelToFear() {
+      if (step >= fears.length) {
+        resetAll();
+        return;
+      }
+
+      busy = true;
+      demonCard.classList.add("hidden");
+      speech.classList.add("hidden");
+      hero.classList.add("walking");
+      setHero(heroStops[step + 1]);
+      updateHud();
+
+      window.setTimeout(() => {
+        hero.classList.remove("walking");
+        busy = false;
+        showCard(step);
+      }, 880);
+    }
+
+    function updateHud() {
+      const completed = Math.min(step, fears.length);
+      bar.style.width = `${(completed / fears.length) * 100}%`;
+
+      if (phase === "card" && step < fears.length) {
+        chapter.textContent = `Встреча: ${fears[step].name}`;
+      } else if (phase === "after-card" && step < fears.length) {
+        chapter.textContent = "Карточка изучена. Что есть в инвентаре?";
+      } else if (phase === "speech" && step < fears.length) {
+        chapter.textContent = "Герой готовит ответ";
+      } else if (phase === "attack" && step < fears.length) {
+        chapter.textContent = "Удар по страху";
+      } else if (step >= fears.length) {
+        chapter.textContent = "Все тревожные точки осмотрены";
+      } else {
+        chapter.textContent = `Путь к пещере: ${fears[step].name}`;
+      }
+
+      next.textContent = step >= fears.length ? "финал" : "далее";
+    }
+
+    function resetAll() {
+      step = 0;
+      phase = "travel";
+      busy = false;
+      setHero(heroStops[0]);
+      hero.classList.remove("walking");
+      demonCard.classList.add("hidden");
+      speech.classList.add("hidden");
+      impact.classList.remove("play");
+      document.querySelectorAll(".monster").forEach((monster) => {
+        monster.classList.remove("defeated");
+      });
+      updateHud();
+    }
+
+    function advance() {
+      if (busy) return;
+      if (phase === "travel" || phase === "done") {
+        travelToFear();
+      } else if (phase === "card") {
+        hideCard();
+      } else if (phase === "after-card") {
+        showSpeech();
+      } else if (phase === "speech") {
+        attack();
+      } else if (phase === "attack") {
+        phase = step >= fears.length ? "done" : "travel";
+        updateHud();
+      }
+    }
+
+    next.addEventListener("click", advance);
+    reset.addEventListener("click", resetAll);
+    resetAll();
+  </script>
+</body>
+</html>
